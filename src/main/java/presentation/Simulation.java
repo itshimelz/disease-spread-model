@@ -1,42 +1,65 @@
 package presentation;
 
-import data.JsonPersonDatabase;
+import data.CityDao;
 import data.PersonDao;
-import domain.person.Person;
+import service.CityService;
+import service.PopulationManager;
 
 import java.util.List;
-import java.util.ResourceBundle;
 
-public class Main {
-    public class SimulationService {
-        private PersonDao personDao;
+public class Simulation {
+    private final PopulationManager populationManager;
+    private final CityService cityService;
+    private static final List<String> CITIES = List.of(
+            "Dhaka", "Chittagong", "Khulna", "Rajshahi", "Barishal"
+    );
 
-        public SimulationService(PersonDao personDao) {
-            this.personDao = personDao;
-        }
-        public static void main(String[] args) {
-            ResourceBundle peoples = ResourceBundle.getBundle("strings");
-            PersonDao personDao = new JsonPersonDatabase(peoples.getString("peoplesPath"));
+    public Simulation(CityDao cityDao, PersonDao personDao) {
+        this.cityService = new CityService(cityDao);
+        this.populationManager = new PopulationManager(cityDao, personDao, cityService);
+    }
 
-            Person person1 = new Person("Alice", 30, "New York");
-            Person person2 = new Person("Bob", 25, "Los Angeles");
+    public CityService getCityService() {
+        return cityService;
+    }
 
-            personDao.addPerson(person1);
-            personDao.addPerson(person2);
+    public PopulationManager getPopulationManager() {
+        return populationManager;
+    }
 
-            List<Person> allPersons = personDao.getAllPersons();
-            System.out.println(allPersons);
+    public void initialize(){
+        populationManager.initializeCities(CITIES, cityService);
+    }
 
-            Person retrievedPerson = personDao.getPersonByName("Alice");
-            System.out.println(retrievedPerson);
-
-            retrievedPerson.setAge(31);
-            personDao.updatePerson(retrievedPerson);
-            System.out.println(personDao.getPersonByName("Alice"));
-
-            personDao.deletePerson("Bob");
-            System.out.println(personDao.getAllPersons());
+    public void initializePopulations() {
+        for (String city : CITIES) {
+            populationManager.initializePopulation(city, 25, 100);
         }
     }
 
+    public void initializeConnections(){
+        populationManager.addConnectionBetweenCity("Dhaka", "Chittagong", 0.5);
+        populationManager.addConnectionBetweenCity("Dhaka", "Sylhet", 0.3);
+        populationManager.addConnectionBetweenCity("Chittagong", "Khulna", 0.2);
+        populationManager.addConnectionBetweenCity("Rajshahi", "Khulna", 0.7);
+        populationManager.addConnectionBetweenCity("Dhaka", "Khulna", 0.1);
+        populationManager.addConnectionBetweenCity("Sylhet", "Barishal", 0.6);
+        populationManager.addConnectionBetweenCity("Rangpur", "Rajshahi", 0.4);
+        populationManager.addConnectionBetweenCity("Comilla", "Chittagong", 0.8);
+        populationManager.addConnectionBetweenCity("Mymensingh", "Dhaka", 0.9);
+        populationManager.addConnectionBetweenCity("Gazipur", "Mymensingh", 0.2);
+        populationManager.addConnectionBetweenCity("Gazipur", "Dhaka", 0.6);
+    }
+
+
+    public void runSimulation(int days) {
+        for (int day = 1; day <= days; day++) {
+            System.out.println("Day " + day + ":");
+            for(String city: CITIES){
+                populationManager.spreadInfection(city, 0.1);
+                populationManager.updatePopulationHealth(city);
+                System.out.println("Infected "+city+": " + populationManager.countInfected(city));
+            }
+        }
+    }
 }

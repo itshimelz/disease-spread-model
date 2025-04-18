@@ -1,15 +1,20 @@
 package data;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import domain.city.City;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JsonCityDatabase implements CityDao{
+public class JsonCityDatabase implements CityDao {
 
     private final String filePath;
     private final ObjectMapper objectMapper;
@@ -23,13 +28,15 @@ public class JsonCityDatabase implements CityDao{
         try {
             File file = new File(filePath);
             if (!file.exists()) {
-                return new ArrayList<>(); // Return empty list if file doesn't exist
+                Files.createDirectories(Paths.get(file.getParent()));
+                Files.writeString(Paths.get(filePath), "[]");
+                return new ArrayList<>();
             }
-            CollectionType type = objectMapper.getTypeFactory().constructCollectionType(List.class, City.class);
-            return objectMapper.readValue(file, type);
+            return objectMapper.readValue(file, new TypeReference<>() {
+            });
         } catch (IOException e) {
             System.err.println("Error loading cities from JSON: " + e.getMessage());
-            return new ArrayList<>(); // Return empty list in case of error
+            return new ArrayList<>();
         }
     }
 
@@ -49,6 +56,14 @@ public class JsonCityDatabase implements CityDao{
     }
 
     @Override
+    public void updateCity(City city) {
+        List<City> cities = loadCities();
+        cities.removeIf(c -> c.getName().equals(city.getName())); // Remove the old entry
+        cities.add(city);
+        saveCities(cities);
+    }
+
+    @Override
     public List<City> getAllCities() {
         return loadCities();
     }
@@ -57,14 +72,6 @@ public class JsonCityDatabase implements CityDao{
     public City getCityByName(String name) {
         List<City> cities = loadCities();
         return cities.stream().filter(city -> city.getName().equals(name)).findFirst().orElse(null);
-    }
-
-    @Override
-    public void updateCity(City city) {
-        List<City> cities = loadCities();
-        cities.removeIf(c -> c.getName().equals(city.getName())); // Remove the old city
-        cities.add(city); // Add the updated city
-        saveCities(cities);
     }
 
     @Override
