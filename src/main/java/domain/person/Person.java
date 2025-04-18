@@ -17,6 +17,10 @@ public class Person {
     private static List<String> personNames;
     private int recoveryTime;
 
+    public void setRecoveryTime(int recoveryTime) {
+        this.recoveryTime = recoveryTime;
+    }
+
     static {
         ResourceBundle bundle = ResourceBundle.getBundle("strings");
         String personNamesPath = bundle.getString("personNamesPath");

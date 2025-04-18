@@ -144,6 +144,65 @@ public class Graph {
         return adjacentVertices;
     }
 
+    // Returns all shortest paths between startCity and endCity (BFS-based, for weighted graphs finds minimal total weight paths)
+    public List<List<String>> allShortestPaths(String startCity, String endCity) {
+        List<List<String>> result = new ArrayList<>();
+        if (!adjacencyList.containsKey(startCity) || !adjacencyList.containsKey(endCity)) {
+            return result;
+        }
+        // Dijkstra's algorithm to get the minimum distance
+        Map<String, Double> minDist = new HashMap<>();
+        for (String v : adjacencyList.keySet()) minDist.put(v, Double.POSITIVE_INFINITY);
+        minDist.put(startCity, 0.0);
+        Queue<List<String>> queue = new LinkedList<>();
+        queue.add(List.of(startCity));
+        double shortest = Double.POSITIVE_INFINITY;
+        while (!queue.isEmpty()) {
+            List<String> path = queue.poll();
+            String last = path.get(path.size() - 1);
+            double pathWeight = totalPathWeight(path);
+            if (pathWeight > shortest) continue; // Prune longer paths
+            if (last.equals(endCity)) {
+                if (result.isEmpty() || Math.abs(pathWeight - shortest) < 1e-9) {
+                    result.add(new ArrayList<>(path));
+                    shortest = pathWeight;
+                } else if (pathWeight < shortest) {
+                    result.clear();
+                    result.add(new ArrayList<>(path));
+                    shortest = pathWeight;
+                }
+                continue;
+            }
+            for (Edge edge : getEdges(last)) {
+                if (!path.contains(edge.destination)) { // avoid cycles
+                    double nextWeight = pathWeight + edge.weight;
+                    if (nextWeight - shortest > 1e-9) continue; // prune
+                    List<String> nextPath = new ArrayList<>(path);
+                    nextPath.add(edge.destination);
+                    queue.add(nextPath);
+                }
+            }
+        }
+        return result;
+    }
+
+    // Helper: returns total weight of a path
+    public double totalPathWeight(List<String> path) {
+        double sum = 0.0;
+        for (int i = 0; i < path.size() - 1; i++) {
+            sum += getEdgeWeight(path.get(i), path.get(i + 1));
+        }
+        return sum;
+    }
+
+    // Helper: returns product of edge weights (risk probability) along a path
+    public double pathRiskProduct(List<String> path) {
+        double prod = 1.0;
+        for (int i = 0; i < path.size() - 1; i++) {
+            prod *= getEdgeWeight(path.get(i), path.get(i + 1));
+        }
+        return prod;
+    }
 
     public static class Edge {
         public String destination;

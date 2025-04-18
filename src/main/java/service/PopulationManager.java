@@ -150,6 +150,21 @@ public class PopulationManager {
         return cityGraph.shortestPath(startCity, endCity);
     }
 
+    // Returns all shortest paths between two cities
+    public List<List<String>> allShortestPaths(String startCity, String endCity) {
+        return cityGraph.allShortestPaths(startCity, endCity);
+    }
+
+    // Returns the sum of edge weights along a path
+    public double totalPathWeight(List<String> path) {
+        return cityGraph.totalPathWeight(path);
+    }
+
+    // Returns the product of edge weights (risk probability) along a path
+    public double pathRiskProduct(List<String> path) {
+        return cityGraph.pathRiskProduct(path);
+    }
+
     public Set<String> getConnectedCities(String cityName) {
         return cityGraph.getAdjacentVertices(cityName);
     }
