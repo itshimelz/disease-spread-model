@@ -58,7 +58,7 @@ DiseaseSpreadModel/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://<your-repo-url>/DiseaseSpreadModel.git
+   git clone https://github.com/itshimelz/disease-spread-model.git
    cd DiseaseSpreadModel
    ```
 
