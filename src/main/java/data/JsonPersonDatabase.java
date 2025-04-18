@@ -14,6 +14,10 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class JsonPersonDatabase implements PersonDao {
+    // WARNING: This implementation loads and saves the entire person list for every operation.
+    // TODO: Add concurrency controls and transactional safety for multi-threaded or multi-process use.
+    // TODO: Implement error bubbling (currently, errors are only printed, not thrown to callers).
+    // NOTE: There are no automated tests for this component yet.
     private final String filePath;
     private final ObjectMapper objectMapper;
     private static final Logger logger = MyLogger.getLogger();

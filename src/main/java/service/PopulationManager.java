@@ -6,6 +6,7 @@ import domain.city.City;
 import domain.person.HealthStatus;
 import domain.person.Person;
 import domain.utils.MergeSort;
+import domain.utils.MyLogger;
 
 import java.util.*;
 
@@ -42,15 +43,11 @@ public class PopulationManager {
                 people.add(person);
                 personDao.addPerson(person);
             }
-            if (!city.getResidents().isEmpty()) {
-                city.setResidents(people);
-                cityDao.updateCity(city);
-            } else {
-                System.out.println("No residents added to " + cityName);
-            }
-            System.out.println("Finished initializing " + populationSize + " people in " + cityName + " population size: "+populationSize);
+            city.setResidents(people); // Always set residents
+            cityDao.updateCity(city);
+            MyLogger.logInfo("Finished initializing " + populationSize + " people in " + cityName + " population size: " + populationSize);
         } else {
-            System.out.println("City not found");
+            MyLogger.logSevere("City not found: " + cityName);
         }
     }
 
@@ -144,7 +141,7 @@ public class PopulationManager {
             }
             return 0;
         } else {
-            System.out.println("City not found");
+            MyLogger.logSevere("City not found: " + cityName);
             return 0;
         }
     }

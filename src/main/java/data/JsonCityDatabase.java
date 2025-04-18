@@ -14,70 +14,114 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class JsonCityDatabase implements CityDao {
+import java.util.concurrent.locks.ReentrantLock;
 
+public class JsonCityDatabase implements CityDao {
+    // In-memory cache for cities
+    private final List<City> cityCache = new ArrayList<>();
+    private final ReentrantLock lock = new ReentrantLock();
     private final String filePath;
     private final ObjectMapper objectMapper;
+    private boolean cacheLoaded = false;
 
     public JsonCityDatabase(String filePath) {
         this.filePath = filePath;
         this.objectMapper = new ObjectMapper();
     }
 
-    private List<City> loadCities() {
+    // Load cache from disk if not loaded
+    private void ensureCacheLoaded() {
+        lock.lock();
         try {
-            File file = new File(filePath);
-            if (!file.exists()) {
-                Files.createDirectories(Paths.get(file.getParent()));
-                Files.writeString(Paths.get(filePath), "[]");
-                return new ArrayList<>();
+            if (!cacheLoaded) {
+                File file = new File(filePath);
+                if (!file.exists()) {
+                    Files.createDirectories(Paths.get(file.getParent()));
+                    Files.writeString(Paths.get(filePath), "[]");
+                    cityCache.clear();
+                } else {
+                    List<City> loaded = objectMapper.readValue(file, new TypeReference<>() {});
+                    cityCache.clear();
+                    cityCache.addAll(loaded);
+                }
+                cacheLoaded = true;
             }
-            return objectMapper.readValue(file, new TypeReference<>() {
-            });
         } catch (IOException e) {
             System.err.println("Error loading cities from JSON: " + e.getMessage());
-            return new ArrayList<>();
+            cityCache.clear();
+        } finally {
+            lock.unlock();
         }
     }
 
-    private void saveCities(List<City> cities) {
+    // Save cache to disk
+    private void saveCacheToDisk() {
+        lock.lock();
         try {
-            objectMapper.writeValue(new File(filePath), cities);
+            objectMapper.writeValue(new File(filePath), cityCache);
         } catch (IOException e) {
             System.err.println("Error saving cities to JSON: " + e.getMessage());
+        } finally {
+            lock.unlock();
         }
     }
 
     @Override
     public void addCity(City city) {
-        List<City> cities = loadCities();
-        cities.add(city);
-        saveCities(cities);
+        ensureCacheLoaded();
+        lock.lock();
+        try {
+            cityCache.add(city);
+            saveCacheToDisk();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public void updateCity(City city) {
-        List<City> cities = loadCities();
-        cities.removeIf(c -> c.getName().equals(city.getName())); // Remove the old entry
-        cities.add(city);
-        saveCities(cities);
+        ensureCacheLoaded();
+        lock.lock();
+        try {
+            cityCache.removeIf(c -> c.getName().equals(city.getName()));
+            cityCache.add(city);
+            saveCacheToDisk();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public List<City> getAllCities() {
-        return loadCities();
+        ensureCacheLoaded();
+        lock.lock();
+        try {
+            return new ArrayList<>(cityCache);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public City getCityByName(String name) {
-        List<City> cities = loadCities();
-        return cities.stream().filter(city -> city.getName().equals(name)).findFirst().orElse(null);
+        ensureCacheLoaded();
+        lock.lock();
+        try {
+            return cityCache.stream().filter(city -> city.getName().equals(name)).findFirst().orElse(null);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public void deleteCity(String name) {
-        List<City> cities = loadCities();
-        cities.removeIf(city -> city.getName().equals(name));
-        saveCities(cities);
+        ensureCacheLoaded();
+        lock.lock();
+        try {
+            cityCache.removeIf(city -> city.getName().equals(name));
+            saveCacheToDisk();
+        } finally {
+            lock.unlock();
+        }
     }
 }
